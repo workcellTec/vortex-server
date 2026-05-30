@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terminal — Admin</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:#060d18; font-family:-apple-system,sans-serif; color:#e2e8f0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+.screen { width:100%; max-width:360px; }
+
+/* Login */
+#loginScreen { display:flex; flex-direction:column; gap:14px; }
+.logo { text-align:center; margin-bottom:6px; }
+.logo h1 { font-size:1.3rem; font-weight:800; color:#a78bfa; }
+.logo p  { font-size:.72rem; color:#475569; margin-top:4px; }
+input[type="password"] { width:100%; background:#0f1c2e; border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:13px 16px; color:#e2e8f0; font-size:.9rem; outline:none; }
+input[type="password"]:focus { border-color:#7c3aed; }
+input[type="date"] { width:100%; background:#060d18; border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:10px 12px; color:#e2e8f0; font-size:.88rem; outline:none; font-weight:600; }
+.btn-enter { width:100%; padding:13px; border-radius:12px; border:none; background:#7c3aed; color:#fff; font-size:.9rem; font-weight:700; cursor:pointer; }
+.err { font-size:.72rem; color:#f87171; text-align:center; min-height:18px; }
+
+/* Painel */
+#adminPanel { display:none; flex-direction:column; gap:16px; }
+.panel-header { display:flex; align-items:center; justify-content:space-between; }
+.panel-header h2 { font-size:1rem; font-weight:800; color:#a78bfa; }
+.btn-logout { background:none; border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.38); font-size:.7rem; padding:5px 12px; border-radius:8px; cursor:pointer; }
+
+/* Card de cliente */
+.client-card { background:#0d1b2e; border-radius:16px; border:1px solid rgba(255,255,255,.07); overflow:hidden; }
+.client-card.america { border-color:rgba(30,58,138,.4); }
+.card-title-bar { padding:12px 16px 10px; border-bottom:1px solid rgba(255,255,255,.05); display:flex; align-items:center; justify-content:space-between; }
+.client-name { font-size:.95rem; font-weight:700; }
+.badge { font-size:.65rem; font-weight:700; padding:3px 10px; border-radius:10px; }
+.badge-ok   { background:rgba(16,185,129,.15); color:#34d399; border:1px solid rgba(16,185,129,.25); }
+.badge-warn { background:rgba(245,158,11,.15); color:#fbbf24; border:1px solid rgba(245,158,11,.25); }
+.badge-bad  { background:rgba(239,68,68,.15);  color:#f87171; border:1px solid rgba(239,68,68,.25); }
+
+.client-meta { padding:10px 16px; display:flex; flex-direction:column; gap:6px; }
+.meta-row { display:flex; justify-content:space-between; font-size:.75rem; }
+.meta-row span:first-child { color:rgba(255,255,255,.4); }
+.meta-row span:last-child  { font-weight:600; }
+
+.date-section { padding:0 16px 12px; }
+.date-label { font-size:.72rem; color:rgba(255,255,255,.4); margin-bottom:6px; }
+.date-row { display:flex; gap:8px; }
+.btn-salvar { padding:10px 14px; border-radius:10px; border:1px solid rgba(124,58,237,.35); background:rgba(124,58,237,.15); color:#a78bfa; font-size:.8rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+
+.actions { padding:10px 16px 14px; border-top:1px solid rgba(255,255,255,.05); display:flex; flex-direction:column; gap:8px; }
+.btn-renovar  { padding:11px; border-radius:12px; border:1px solid rgba(124,58,237,.35); background:rgba(124,58,237,.2); color:#a78bfa; font-size:.85rem; font-weight:700; cursor:pointer; }
+.btn-bloquear { padding:11px; border-radius:12px; border:1px solid rgba(239,68,68,.25); background:rgba(239,68,68,.15); color:#f87171; font-size:.85rem; font-weight:700; cursor:pointer; }
+.btn-liberar  { padding:11px; border-radius:12px; border:1px solid rgba(16,185,129,.25); background:rgba(16,185,129,.15); color:#34d399; font-size:.85rem; font-weight:700; cursor:pointer; }
+
+.divider { text-align:center; font-size:.68rem; color:rgba(255,255,255,.2); letter-spacing:.5px; text-transform:uppercase; }
+
+/* Toast */
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1e293b; color:#e2e8f0; font-size:.8rem; font-weight:600; padding:10px 20px; border-radius:12px; border:1px solid rgba(255,255,255,.1); opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap; }
+.toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div class="screen">
+
+  <!-- Login -->
+  <div id="loginScreen">
+    <div class="logo">
+      <h1>⚡ Admin Terminal</h1>
+      <p>Controle de todos os sistemas</p>
+    </div>
+    <input type="password" id="senhaInput" placeholder="Senha de acesso" autocomplete="off">
+    <div class="err" id="errMsg"></div>
+    <button class="btn-enter" id="btnEntrar">Entrar</button>
+  </div>
+
+  <!-- Painel -->
+  <div id="adminPanel">
+    <div class="panel-header">
+      <h2>⚡ Admin Terminal</h2>
+      <button class="btn-logout" id="btnSair">Sair</button>
+    </div>
+
+    <!-- ══ MARCUS ══ -->
+    <div class="client-card">
+      <div class="card-title-bar">
+        <div class="client-name">🏪 Marcus Celulares</div>
+        <span class="badge" id="mBadge">...</span>
+      </div>
+      <div class="client-meta">
+        <div class="meta-row"><span>Vencimento</span><span id="mVenc">—</span></div>
+        <div class="meta-row"><span>Dias restantes</span><span id="mDias">—</span></div>
+        <div class="meta-row"><span>Acesso bloqueado</span><span id="mBloq">—</span></div>
+      </div>
+      <div class="date-section">
+        <div class="date-label">📅 Definir data de vencimento</div>
+        <div class="date-row">
+          <input type="date" id="mDataCustom">
+          <button class="btn-salvar" id="mBtnSalvar">Salvar</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn-renovar"  id="mBtnRenovar">🔄 Renovar +30 dias</button>
+        <button class="btn-bloquear" id="mBtnBloquear">🔒 Bloquear acesso</button>
+        <button class="btn-liberar"  id="mBtnLiberar">✅ Liberar acesso</button>
+      </div>
+    </div>
+
+    <div class="divider">— America Board —</div>
+
+    <!-- ══ AMERICA BOARD ══ -->
+    <div class="client-card america">
+      <div class="card-title-bar">
+        <div class="client-name">🏙️ America Board</div>
+        <span class="badge" id="aBadge">...</span>
+      </div>
+      <div class="client-meta">
+        <div class="meta-row"><span>Vencimento</span><span id="aVenc">—</span></div>
+        <div class="meta-row"><span>Dias restantes</span><span id="aDias">—</span></div>
+        <div class="meta-row"><span>Acesso bloqueado</span><span id="aBloq">—</span></div>
+      </div>
+      <div class="date-section">
+        <div class="date-label">📅 Definir data de vencimento</div>
+        <div class="date-row">
+          <input type="date" id="aDataCustom">
+          <button class="btn-salvar" id="aBtnSalvar">Salvar</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn-renovar"  id="aBtnRenovar">🔄 Renovar +30 dias</button>
+        <button class="btn-bloquear" id="aBtnBloquear">🔒 Bloquear acesso</button>
+        <button class="btn-liberar"  id="aBtnLiberar">✅ Liberar acesso</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp }                  from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js';
+import { getDatabase, ref, get, update }  from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js';
+
+const SENHA = 'Angry1712@';
+
+// ── Firebase Marcus (inalterado) ──────────────────────────
+const appM = initializeApp({
+    apiKey:            "AIzaSyADlBhlrDlPHhmdgvk15P3dcNOIFHCDnoY",
+    authDomain:        "vortexcellmarcus.firebaseapp.com",
+    databaseURL:       "https://vortexcellmarcus-default-rtdb.firebaseio.com",
+    projectId:         "vortexcellmarcus",
+    storageBucket:     "vortexcellmarcus.firebasestorage.app",
+    messagingSenderId: "1019146776806",
+    appId:             "1:1019146776806:web:ea0b61c841f9d536ff0b27"
+}, 'marcus');
+
+// ── Firebase America Board ────────────────────────────────
+const appA = initializeApp({
+    apiKey:            "AIzaSyBMo_Z5rhnBJYcKcaYeNvGFOwGrG8tnMWc",
+    authDomain:        "vortexcell-america.firebaseapp.com",
+    databaseURL:       "https://vortexcell-america-default-rtdb.firebaseio.com",
+    projectId:         "vortexcell-america",
+    storageBucket:     "vortexcell-america.firebasestorage.app",
+    messagingSenderId: "129201935282",
+    appId:             "1:129201935282:web:b97af4b3ce3768e9698aab"
+}, 'america');
+
+const dbM = getDatabase(appM);
+const dbA = getDatabase(appA);
+const licM = ref(dbM, 'config/licenca');
+const licA = ref(dbA, 'config/licenca');
+
+// ── Toast ─────────────────────────────────────────────────
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── Status genérico ───────────────────────────────────────
+async function carregarStatus(licRef, ids) {
+    const snap = await get(licRef);
+    const cfg  = snap.exists() ? snap.val() : {};
+    const bloq = cfg.bloqueado === true;
+    const venc = cfg.vencimento || null;
+    const dias = venc ? Math.ceil((new Date(venc) - new Date()) / 86400000) : null;
+
+    if (venc) document.getElementById(ids.data).value = venc;
+
+    const badge = document.getElementById(ids.badge);
+    if (bloq || (dias !== null && dias < 0)) {
+        badge.textContent = bloq ? '🔒 Bloqueado' : '❌ Vencido';
+        badge.className = 'badge badge-bad';
+    } else if (dias !== null && dias <= 5) {
+        badge.textContent = `⏰ ${dias}d`;
+        badge.className = 'badge badge-warn';
+    } else {
+        badge.textContent = '✅ Ativo';
+        badge.className = 'badge badge-ok';
+    }
+
+    document.getElementById(ids.venc).textContent = venc || 'Não definido';
+    document.getElementById(ids.dias).textContent = dias !== null ? (dias < 0 ? `Vencido há ${Math.abs(dias)}d` : `${dias} dias`) : '—';
+    document.getElementById(ids.bloq).textContent = bloq ? '🔒 Sim' : '✅ Não';
+    document.getElementById(ids.bloquear).style.display = bloq ? 'none'  : 'block';
+    document.getElementById(ids.liberar).style.display  = bloq ? 'block' : 'none';
+}
+
+function mostrarPainel() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminPanel').style.display  = 'flex';
+    carregarStatus(licM, { badge:'mBadge', venc:'mVenc', dias:'mDias', bloq:'mBloq', data:'mDataCustom', bloquear:'mBtnBloquear', liberar:'mBtnLiberar' });
+    carregarStatus(licA, { badge:'aBadge', venc:'aVenc', dias:'aDias', bloq:'aBloq', data:'aDataCustom', bloquear:'aBtnBloquear', liberar:'aBtnLiberar' });
+}
+
+function mostrarLogin() {
+    document.getElementById('adminPanel').style.display  = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('senhaInput').value = '';
+}
+
+function login() {
+    if (document.getElementById('senhaInput').value === SENHA) {
+        mostrarPainel();
+    } else {
+        document.getElementById('errMsg').textContent = 'Senha incorreta.';
+        setTimeout(() => document.getElementById('errMsg').textContent = '', 2000);
+    }
+}
+
+// ── Marcus ────────────────────────────────────────────────
+const mIds = { badge:'mBadge', venc:'mVenc', dias:'mDias', bloq:'mBloq', data:'mDataCustom', bloquear:'mBtnBloquear', liberar:'mBtnLiberar' };
+document.getElementById('mBtnBloquear').addEventListener('click', async () => { await update(licM, { bloqueado: true });  toast('🔒 Marcus bloqueado!'); carregarStatus(licM, mIds); });
+document.getElementById('mBtnLiberar').addEventListener('click',  async () => { await update(licM, { bloqueado: false }); toast('✅ Marcus liberado!');  carregarStatus(licM, mIds); });
+document.getElementById('mBtnRenovar').addEventListener('click',  async () => {
+    const d = new Date(); d.setDate(d.getDate()+30);
+    const nova = d.toISOString().split('T')[0];
+    await update(licM, { bloqueado: false, vencimento: nova });
+    toast('🔄 Marcus renovado até ' + nova); carregarStatus(licM, mIds);
+});
+document.getElementById('mBtnSalvar').addEventListener('click', async () => {
+    const val = document.getElementById('mDataCustom').value;
+    if (!val) { toast('⚠️ Escolha uma data.'); return; }
+    await update(licM, { vencimento: val }); toast('📅 Marcus: ' + val); carregarStatus(licM, mIds);
+});
+
+// ── America Board ─────────────────────────────────────────
+const aIds = { badge:'aBadge', venc:'aVenc', dias:'aDias', bloq:'aBloq', data:'aDataCustom', bloquear:'aBtnBloquear', liberar:'aBtnLiberar' };
+document.getElementById('aBtnBloquear').addEventListener('click', async () => { await update(licA, { bloqueado: true });  toast('🔒 America Board bloqueado!'); carregarStatus(licA, aIds); });
+document.getElementById('aBtnLiberar').addEventListener('click',  async () => { await update(licA, { bloqueado: false }); toast('✅ America Board liberado!');  carregarStatus(licA, aIds); });
+document.getElementById('aBtnRenovar').addEventListener('click',  async () => {
+    const d = new Date(); d.setDate(d.getDate()+30);
+    const nova = d.toISOString().split('T')[0];
+    await update(licA, { bloqueado: false, vencimento: nova });
+    toast('🔄 America Board renovado até ' + nova); carregarStatus(licA, aIds);
+});
+document.getElementById('aBtnSalvar').addEventListener('click', async () => {
+    const val = document.getElementById('aDataCustom').value;
+    if (!val) { toast('⚠️ Escolha uma data.'); return; }
+    await update(licA, { vencimento: val }); toast('📅 America Board: ' + val); carregarStatus(licA, aIds);
+});
+
+// ── Login / Logout ────────────────────────────────────────
+document.getElementById('btnEntrar').addEventListener('click', login);
+document.getElementById('senhaInput').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+document.getElementById('btnSair').addEventListener('click', mostrarLogin);
+</script>
+</body>
+</html>
