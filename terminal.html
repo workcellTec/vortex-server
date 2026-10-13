@@ -2,267 +2,400 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Terminal — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Terminal VortexCell</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
-* { box-sizing:border-box; margin:0; padding:0; }
-body { background:#060d18; font-family:-apple-system,sans-serif; color:#e2e8f0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
-.screen { width:100%; max-width:360px; }
+/* Uma lista, uma linha por loja: nome à esquerda, dias restantes à direita. As ações só aparecem ao tocar na linha. */
+:root {
+  color-scheme: dark;
+  --bg: #0b0f1c; --surface: #131a2b; --line: #222b45; --fg: #eaedf7; --muted: #7f8aa8;
+  --accent: #a58bff; --accent-ink: #1a1040;
+  --ok: #56d9a0; --warn: #ffc247; --bad: #ff6f76;
+  --f-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #f4f5fa; --surface: #ffffff; --line: #e1e4f0; --fg: #151a30; --muted: #667090;
+    --accent: #5b3fd6; --accent-ink: #ffffff; --ok: #0b8a57; --warn: #a56a00; --bad: #c7303a;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 400 15px/1.4 var(--f-body); min-height: 100vh; }
+button, input { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
 
-/* Login */
-#loginScreen { display:flex; flex-direction:column; gap:14px; }
-.logo { text-align:center; margin-bottom:6px; }
-.logo h1 { font-size:1.3rem; font-weight:800; color:#a78bfa; }
-.logo p  { font-size:.72rem; color:#475569; margin-top:4px; }
-input[type="password"] { width:100%; background:#0f1c2e; border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:13px 16px; color:#e2e8f0; font-size:.9rem; outline:none; }
-input[type="password"]:focus { border-color:#7c3aed; }
-input[type="date"] { width:100%; background:#060d18; border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:10px 12px; color:#e2e8f0; font-size:.88rem; outline:none; font-weight:600; }
-.btn-enter { width:100%; padding:13px; border-radius:12px; border:none; background:#7c3aed; color:#fff; font-size:.9rem; font-weight:700; cursor:pointer; }
-.err { font-size:.72rem; color:#f87171; text-align:center; min-height:18px; }
+.wrap { max-width: 560px; margin: 0 auto; padding: 20px 16px calc(48px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 18px; }
+.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.top h1 { font: 800 1.4rem/1 var(--f-display); margin: 0; letter-spacing: -.01em; }
+.top p { margin: 6px 0 0; color: var(--muted); font-size: .8rem; }
+.top .acoes-topo { display: flex; gap: 14px; }
+.link { background: none; border: 0; color: var(--muted); font-size: .8rem; cursor: pointer; padding: 6px 0; }
+.busca { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 11px 14px; }
+.busca::placeholder { color: var(--muted); }
 
-/* Painel */
-#adminPanel { display:none; flex-direction:column; gap:16px; }
-.panel-header { display:flex; align-items:center; justify-content:space-between; }
-.panel-header h2 { font-size:1rem; font-weight:800; color:#a78bfa; }
-.btn-logout { background:none; border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.38); font-size:.7rem; padding:5px 12px; border-radius:8px; cursor:pointer; }
+.lista { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+.linha { border-top: 1px solid var(--line); }
+.linha:first-child { border-top: 0; }
+.row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 16px; background: none; border: 0; text-align: left; cursor: pointer; }
+.row:active { background: color-mix(in srgb, var(--fg) 5%, transparent); }
+.nome { flex: 1; min-width: 0; font: 600 1.02rem/1.2 var(--f-display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nome small { display: block; font: 500 .72rem var(--f-body); margin-top: 3px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.dias { text-align: right; font-variant-numeric: tabular-nums; }
+.dias b { display: block; font: 600 1.5rem/1 var(--f-mono); }
+.dias span { font-size: .7rem; color: var(--muted); }
+.dias.ok b { color: var(--ok); } .dias.warn b { color: var(--warn); } .dias.bad b { color: var(--bad); }
+.dias.mud b { color: var(--muted); }
+.dias.txt b { font-size: .92rem; letter-spacing: .02em; }
 
-/* Card de cliente */
-.client-card { background:#0d1b2e; border-radius:16px; border:1px solid rgba(255,255,255,.07); overflow:hidden; }
-.client-card.america { border-color:rgba(30,58,138,.4); }
-.card-title-bar { padding:12px 16px 10px; border-bottom:1px solid rgba(255,255,255,.05); display:flex; align-items:center; justify-content:space-between; }
-.client-name { font-size:.95rem; font-weight:700; }
-.badge { font-size:.65rem; font-weight:700; padding:3px 10px; border-radius:10px; }
-.badge-ok   { background:rgba(16,185,129,.15); color:#34d399; border:1px solid rgba(16,185,129,.25); }
-.badge-warn { background:rgba(245,158,11,.15); color:#fbbf24; border:1px solid rgba(245,158,11,.25); }
-.badge-bad  { background:rgba(239,68,68,.15);  color:#f87171; border:1px solid rgba(239,68,68,.25); }
+.abre { padding: 0 16px 16px; display: grid; gap: 12px; }
+.btn { border: 0; border-radius: 12px; padding: 13px; font-weight: 600; cursor: pointer; background: var(--accent); color: var(--accent-ink); width: 100%; }
+.btn:active { transform: scale(.99); }
+.btn:disabled { opacity: .5; cursor: progress; }
+.btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+.btn.bad { background: var(--bad); color: #fff; }
+.outras { display: flex; justify-content: space-between; gap: 8px; }
+.outras button { background: none; border: 0; color: var(--muted); font-size: .8rem; padding: 6px 2px; cursor: pointer; }
+.outras button.bad { color: var(--bad); }
+.outras button.ok { color: var(--ok); }
+.conf { display: grid; gap: 10px; }
+.conf p { margin: 0; font-size: .88rem; }
+.conf .dt { font: 600 1rem var(--f-mono); font-variant-numeric: tabular-nums; }
+.conf .aviso { color: var(--warn); font-size: .78rem; }
+.conf input { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; }
+.par { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tres { display: grid; gap: 8px; }
+.erro-txt { color: var(--muted); font-size: .8rem; margin: 0; }
+.fim { text-align: center; }
+.arq { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; }
+.arq:first-child { border-top: 0; }
+.arq .link { color: var(--accent); }
+.vazio { color: var(--muted); font-size: .84rem; text-align: center; padding: 22px 0; }
 
-.client-meta { padding:10px 16px; display:flex; flex-direction:column; gap:6px; }
-.meta-row { display:flex; justify-content:space-between; font-size:.75rem; }
-.meta-row span:first-child { color:rgba(255,255,255,.4); }
-.meta-row span:last-child  { font-weight:600; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 16px); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: .85rem; opacity: 0; pointer-events: none; transition: .25s; max-width: calc(100% - 32px); z-index: 50; }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
 
-.date-section { padding:0 16px 12px; }
-.date-label { font-size:.72rem; color:rgba(255,255,255,.4); margin-bottom:6px; }
-.date-row { display:flex; gap:8px; }
-.btn-salvar { padding:10px 14px; border-radius:10px; border:1px solid rgba(124,58,237,.35); background:rgba(124,58,237,.15); color:#a78bfa; font-size:.8rem; font-weight:700; cursor:pointer; white-space:nowrap; }
-
-.actions { padding:10px 16px 14px; border-top:1px solid rgba(255,255,255,.05); display:flex; flex-direction:column; gap:8px; }
-.btn-renovar  { padding:11px; border-radius:12px; border:1px solid rgba(124,58,237,.35); background:rgba(124,58,237,.2); color:#a78bfa; font-size:.85rem; font-weight:700; cursor:pointer; }
-.btn-bloquear { padding:11px; border-radius:12px; border:1px solid rgba(239,68,68,.25); background:rgba(239,68,68,.15); color:#f87171; font-size:.85rem; font-weight:700; cursor:pointer; }
-.btn-liberar  { padding:11px; border-radius:12px; border:1px solid rgba(16,185,129,.25); background:rgba(16,185,129,.15); color:#34d399; font-size:.85rem; font-weight:700; cursor:pointer; }
-
-.divider { text-align:center; font-size:.68rem; color:rgba(255,255,255,.2); letter-spacing:.5px; text-transform:uppercase; }
-
-/* Toast */
-.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1e293b; color:#e2e8f0; font-size:.8rem; font-weight:600; padding:10px 20px; border-radius:12px; border:1px solid rgba(255,255,255,.1); opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap; }
-.toast.show { opacity:1; }
+.pin { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: grid; place-items: center; padding: 20px; }
+.pin form { width: 100%; max-width: 320px; display: grid; gap: 14px; text-align: center; }
+.pin h1 { font: 800 1.5rem/1 var(--f-display); margin: 0; }
+.pin h1 span { color: var(--accent); }
+.pin input { width: 100%; text-align: center; letter-spacing: .5em; font: 600 1.4rem var(--f-mono); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.pin p { margin: 0; color: var(--bad); font-size: .8rem; min-height: 1.2em; }
 </style>
 </head>
 <body>
-<div class="screen">
 
-  <!-- Login -->
-  <div id="loginScreen">
-    <div class="logo">
-      <h1>⚡ Admin Terminal</h1>
-      <p>Controle de todos os sistemas</p>
-    </div>
-    <input type="password" id="senhaInput" placeholder="Senha de acesso" autocomplete="off">
-    <div class="err" id="errMsg"></div>
-    <button class="btn-enter" id="btnEntrar">Entrar</button>
-  </div>
-
-  <!-- Painel -->
-  <div id="adminPanel">
-    <div class="panel-header">
-      <h2>⚡ Admin Terminal</h2>
-      <button class="btn-logout" id="btnSair">Sair</button>
-    </div>
-
-    <!-- ══ MARCUS ══ -->
-    <div class="client-card">
-      <div class="card-title-bar">
-        <div class="client-name">🏪 Marcus Celulares</div>
-        <span class="badge" id="mBadge">...</span>
-      </div>
-      <div class="client-meta">
-        <div class="meta-row"><span>Vencimento</span><span id="mVenc">—</span></div>
-        <div class="meta-row"><span>Dias restantes</span><span id="mDias">—</span></div>
-        <div class="meta-row"><span>Acesso bloqueado</span><span id="mBloq">—</span></div>
-      </div>
-      <div class="date-section">
-        <div class="date-label">📅 Definir data de vencimento</div>
-        <div class="date-row">
-          <input type="date" id="mDataCustom">
-          <button class="btn-salvar" id="mBtnSalvar">Salvar</button>
-        </div>
-      </div>
-      <div class="actions">
-        <button class="btn-renovar"  id="mBtnRenovar">🔄 Renovar +30 dias</button>
-        <button class="btn-bloquear" id="mBtnBloquear">🔒 Bloquear acesso</button>
-        <button class="btn-liberar"  id="mBtnLiberar">✅ Liberar acesso</button>
-      </div>
-    </div>
-
-    <div class="divider">— America Board —</div>
-
-    <!-- ══ AMERICA BOARD ══ -->
-    <div class="client-card america">
-      <div class="card-title-bar">
-        <div class="client-name">🏙️ America Board</div>
-        <span class="badge" id="aBadge">...</span>
-      </div>
-      <div class="client-meta">
-        <div class="meta-row"><span>Vencimento</span><span id="aVenc">—</span></div>
-        <div class="meta-row"><span>Dias restantes</span><span id="aDias">—</span></div>
-        <div class="meta-row"><span>Acesso bloqueado</span><span id="aBloq">—</span></div>
-      </div>
-      <div class="date-section">
-        <div class="date-label">📅 Definir data de vencimento</div>
-        <div class="date-row">
-          <input type="date" id="aDataCustom">
-          <button class="btn-salvar" id="aBtnSalvar">Salvar</button>
-        </div>
-      </div>
-      <div class="actions">
-        <button class="btn-renovar"  id="aBtnRenovar">🔄 Renovar +30 dias</button>
-        <button class="btn-bloquear" id="aBtnBloquear">🔒 Bloquear acesso</button>
-        <button class="btn-liberar"  id="aBtnLiberar">✅ Liberar acesso</button>
-      </div>
-    </div>
-
-  </div>
+<div class="pin" id="pin">
+  <form id="pinForm" autocomplete="off">
+    <h1>Terminal <span>VortexCell</span></h1>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="12" placeholder="PIN" aria-label="PIN de acesso" autocomplete="off">
+    <p id="pinMsg" role="alert"></p>
+    <button type="submit" class="btn pri" id="pinOk">Entrar</button>
+  </form>
 </div>
-<div class="toast" id="toast"></div>
+
+<div class="wrap" id="app" hidden>
+  <header class="top">
+    <div><h1>Terminal</h1><p id="sub"></p></div>
+    <div class="acoes-topo"><button type="button" class="link" id="btnAtualizar">Atualizar</button><button type="button" class="link" id="btnSair">Sair</button></div>
+  </header>
+  <input class="busca" id="busca" type="search" placeholder="Buscar loja…" autocomplete="off" aria-label="Buscar loja" hidden>
+  <main class="lista" id="lista"></main>
+  <div class="fim"><button type="button" class="link" id="arqBtn" hidden></button></div>
+  <section class="lista" id="arqLista" hidden></section>
+</div>
+<div class="toast" id="toast" role="status"></div>
 
 <script type="module">
-import { initializeApp }                  from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js';
-import { getDatabase, ref, get, update }  from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js';
+import { getDatabase, ref, get, update } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js';
 
-const SENHA = 'Angry1712@';
+// ═════════════════════════════════════════════════════════════
+// LISTA DE LOJAS — pra incluir uma loja nova, é só acrescentar um objeto aqui.
+// ═════════════════════════════════════════════════════════════
+const CLIENTES = [
+  { id: 'king', nome: 'King Cell', firebaseConfig: {
+      apiKey: "AIzaSyAi-Cy3Y8VDIAstE0P1RIcDeM8wtqFXhDg", authDomain: "kingcell-vortex.firebaseapp.com",
+      databaseURL: "https://kingcell-vortex-default-rtdb.firebaseio.com", projectId: "kingcell-vortex",
+      storageBucket: "kingcell-vortex.firebasestorage.app", messagingSenderId: "465950292471",
+      appId: "1:465950292471:web:c8cfcb6ed3acdb675c96f2" } },
+  { id: 'marcus', nome: 'Marcus Celulares', firebaseConfig: {
+      apiKey: "AIzaSyADlBhlrDlPHhmdgvk15P3dcNOIFHCDnoY", authDomain: "vortexcellmarcus.firebaseapp.com",
+      databaseURL: "https://vortexcellmarcus-default-rtdb.firebaseio.com", projectId: "vortexcellmarcus",
+      storageBucket: "vortexcellmarcus.firebasestorage.app", messagingSenderId: "1019146776806",
+      appId: "1:1019146776806:web:ea0b61c841f9d536ff0b27" } },
+  { id: 'america', nome: 'América Cell', firebaseConfig: {
+      apiKey: "AIzaSyBMo_Z5rhnBJYcKcaYeNvGFOwGrG8tnMWc", authDomain: "vortexcell-america.firebaseapp.com",
+      databaseURL: "https://vortexcell-america-default-rtdb.firebaseio.com", projectId: "vortexcell-america",
+      storageBucket: "vortexcell-america.firebasestorage.app", messagingSenderId: "129201935282",
+      appId: "1:129201935282:web:b97af4b3ce3768e9698aab" } },
+  { id: 'updatecell', nome: 'UpdateCell', firebaseConfig: {
+      apiKey: "AIzaSyAoNlAkM3NWa8pw6hDY6j_6TRn5lptiR9A", authDomain: "updatecell-vortexcell.firebaseapp.com",
+      databaseURL: "https://updatecell-vortexcell-default-rtdb.firebaseio.com", projectId: "updatecell-vortexcell",
+      storageBucket: "updatecell-vortexcell.firebasestorage.app", messagingSenderId: "609787761024",
+      appId: "1:609787761024:web:1d8efa7ad9adb20c3df165" } },
+  { id: 'itek', nome: 'iTek', firebaseConfig: {
+      apiKey: "AIzaSyAkprR-NJwfaDZ950N_qIK4HbtqC_ykUvQ", authDomain: "vortexcell01a-de187.firebaseapp.com",
+      databaseURL: "https://vortexcell01a-de187-default-rtdb.firebaseio.com", projectId: "vortexcell01a-de187",
+      storageBucket: "vortexcell01a-de187.firebasestorage.app", messagingSenderId: "527066052567",
+      appId: "1:527066052567:web:d88eff6acc44146f1efd92" } },
+  { id: 'vortexcellbase', nome: 'VortexCell Testes', firebaseConfig: {
+      apiKey: "AIzaSyDGjgTsy_6qjykhGaqSILj0wsEFLZN6Mug", authDomain: "vortexcellbase.firebaseapp.com",
+      databaseURL: "https://vortexcellbase-default-rtdb.firebaseio.com", projectId: "vortexcellbase",
+      storageBucket: "vortexcellbase.firebasestorage.app", messagingSenderId: "562415593188",
+      appId: "1:562415593188:web:df4628246781a457666ef1" } }
+];
 
-// ── Firebase Marcus (inalterado) ──────────────────────────
-const appM = initializeApp({
-    apiKey:            "AIzaSyADlBhlrDlPHhmdgvk15P3dcNOIFHCDnoY",
-    authDomain:        "vortexcellmarcus.firebaseapp.com",
-    databaseURL:       "https://vortexcellmarcus-default-rtdb.firebaseio.com",
-    projectId:         "vortexcellmarcus",
-    storageBucket:     "vortexcellmarcus.firebasestorage.app",
-    messagingSenderId: "1019146776806",
-    appId:             "1:1019146776806:web:ea0b61c841f9d536ff0b27"
-}, 'marcus');
+// PIN de acesso à tela (SHA-256 de "vortex:" + PIN). É só uma trava de tela: não protege o banco das lojas.
+const PIN_HASH = 'd87420488142ff0693c871dc84745ed3c17cca2eef97547598e8f0160e570d58';
+const TIMEOUT_MS = 8000;
 
-// ── Firebase America Board ────────────────────────────────
-const appA = initializeApp({
-    apiKey:            "AIzaSyBMo_Z5rhnBJYcKcaYeNvGFOwGrG8tnMWc",
-    authDomain:        "vortexcell-america.firebaseapp.com",
-    databaseURL:       "https://vortexcell-america-default-rtdb.firebaseio.com",
-    projectId:         "vortexcell-america",
-    storageBucket:     "vortexcell-america.firebasestorage.app",
-    messagingSenderId: "129201935282",
-    appId:             "1:129201935282:web:b97af4b3ce3768e9698aab"
-}, 'america');
+// Lojas arquivadas ficam registradas no banco da King (config/licenca/arquivadas), com o id embaralhado.
+// Fica fora do banco de cada loja de propósito: assim dá para arquivar até loja que não responde.
+// (config/licenca já é aberto para o terminal nas regras, então não precisa publicar regra nova.)
+const REGISTRO = 'king';
 
-const dbM = getDatabase(appM);
-const dbA = getDatabase(appA);
-const licM = ref(dbM, 'config/licenca');
-const licA = ref(dbA, 'config/licenca');
+CLIENTES.forEach(c => {
+  c.app = initializeApp(c.firebaseConfig, c.id);
+  c.db = getDatabase(c.app);
+  c.licRef = ref(c.db, 'config/licenca');
+  c.cfg = null; c.erro = ''; c.carregando = true; c.ocupado = false; c.hid = '';
+});
+const getCliente = id => CLIENTES.find(c => c.id === id);
+const registroRef = () => ref(getCliente(REGISTRO).db, 'config/licenca/arquivadas');
+const arqSet = new Set();
+let arqErro = '';
 
-// ── Toast ─────────────────────────────────────────────────
-function toast(msg) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 2500);
+// ── Datas (sempre pela data LOCAL, no formato AAAA-MM-DD) ───────
+const pad = n => String(n).padStart(2, '0');
+const isoDe = (y, m, d) => `${y}-${pad(m)}-${pad(d)}`;
+function parseISO(s) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? { y: +m[1], m: +m[2], d: +m[3] } : null; }
+function hojeISO() { const t = new Date(); return isoDe(t.getFullYear(), t.getMonth() + 1, t.getDate()); }
+const dmy = s => { const p = parseISO(s); return p ? `${pad(p.d)}/${pad(p.m)}/${p.y}` : '—'; };
+const dm = s => { const p = parseISO(s); return p ? `${pad(p.d)}/${pad(p.m)}` : '—'; };
+function diasAte(s) {
+  const p = parseISO(s); if (!p) return null;
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  return Math.round((new Date(p.y, p.m - 1, p.d) - hoje) / 86400000);
+}
+function somaDias(s, n) { const p = parseISO(s), d = new Date(p.y, p.m - 1, p.d + n); return isoDe(d.getFullYear(), d.getMonth() + 1, d.getDate()); }
+// Renovação: +30 dias corridos em cima do vencimento da PRÓPRIA loja (sem data, a partir de hoje)
+function planoRenovar(cfg) {
+  const tem = parseISO(cfg && cfg.vencimento);
+  return { de: tem ? cfg.vencimento : null, para: somaDias(tem ? cfg.vencimento : hojeISO(), 30) };
+}
+// Mesma regra do app das lojas: bloqueia no dia seguinte ao vencimento; avisa nos 5 dias finais
+function estadoDe(c) {
+  if (c.carregando) return { k: 'mud', ord: 5, txt: true, num: '…', un: '' };
+  if (c.erro) return { k: 'mud', ord: 1, txt: true, num: 'Sem resposta', un: '' };
+  const cfg = c.cfg || {}, d = diasAte(cfg.vencimento);
+  if (cfg.bloqueado === true) return { k: 'bad', ord: 0, txt: true, num: 'Bloqueada', un: '', d };
+  if (d === null) return { k: 'ok', ord: 4, txt: true, num: 'Sem data', un: '', d };
+  if (d < 0) return { k: 'bad', ord: 2, num: String(-d), un: 'dias de atraso', d };
+  if (d <= 5) return { k: 'warn', ord: 3, num: String(d), un: d === 1 ? 'dia' : 'dias', d };
+  return { k: 'ok', ord: 4, num: String(d), un: 'dias', d };
+}
+window.__vx = { somaDias, planoRenovar, estadoDe, diasAte };
+
+// ── Estado da tela ──────────────────────────────────────────────
+let termo = '', aberta = '', modo = {};
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 3000); }
+const arquivada = c => arqSet.has(c.hid);
+
+function subTxt(c) {
+  if (c.carregando) return 'carregando…';
+  if (c.erro) return c.erro;
+  const cfg = c.cfg || {}, v = cfg.vencimento;
+  if (!parseISO(v)) return 'sem vencimento';
+  if (cfg.bloqueado === true) return `acesso cortado · venc. ${dm(v)}`;
+  return diasAte(v) < 0 ? `venceu em ${dm(v)}` : `vence ${dm(v)}`;
 }
 
-// ── Status genérico ───────────────────────────────────────
-async function carregarStatus(licRef, ids) {
-    const snap = await get(licRef);
-    const cfg  = snap.exists() ? snap.val() : {};
-    const bloq = cfg.bloqueado === true;
-    const venc = cfg.vencimento || null;
-    const dias = venc ? Math.ceil((new Date(venc) - new Date()) / 86400000) : null;
-
-    if (venc) document.getElementById(ids.data).value = venc;
-
-    const badge = document.getElementById(ids.badge);
-    if (bloq || (dias !== null && dias < 0)) {
-        badge.textContent = bloq ? '🔒 Bloqueado' : '❌ Vencido';
-        badge.className = 'badge badge-bad';
-    } else if (dias !== null && dias <= 5) {
-        badge.textContent = `⏰ ${dias}d`;
-        badge.className = 'badge badge-warn';
-    } else {
-        badge.textContent = '✅ Ativo';
-        badge.className = 'badge badge-ok';
+function painelHtml(c, m) {
+  const cfg = c.cfg || {}, nome = esc(c.nome), oc = c.ocupado ? ' disabled' : '';
+  if (m === 'renovar') {
+    const p = planoRenovar(cfg), ainda = diasAte(p.para) < 0;
+    return `<div class="conf"><p>Renovar ${nome} por mais 30 dias?</p><p class="dt">${p.de ? dmy(p.de) : 'sem data'} → ${dmy(p.para)}</p>` +
+      (ainda ? `<p class="aviso">Mesmo assim a loja continua vencida. Para outra data, use "Definir data".</p>` : '') +
+      `<div class="par"><button type="button" class="btn" data-a="renovar-ok"${oc}>Confirmar</button><button type="button" class="btn ghost" data-a="fechar">Cancelar</button></div></div>`;
+  }
+  if (m === 'data') {
+    return `<div class="conf"><p>Novo vencimento de ${nome}</p><input id="dt-${c.id}" type="date" value="${esc(cfg.vencimento || hojeISO())}" aria-label="Novo vencimento">` +
+      `<div class="par"><button type="button" class="btn" data-a="data-ok"${oc}>Salvar data</button><button type="button" class="btn ghost" data-a="fechar">Cancelar</button></div></div>`;
+  }
+  if (m === 'cortar') {
+    return `<div class="conf"><p>Cortar o acesso de ${nome}? A loja não consegue mais criar OS, vendas nem lançamentos.</p>` +
+      `<div class="par"><button type="button" class="btn bad" data-a="cortar-ok"${oc}>Cortar acesso</button><button type="button" class="btn ghost" data-a="fechar">Cancelar</button></div></div>`;
+  }
+  if (m === 'arquivar') {
+    if (c.erro || cfg.bloqueado === true) {
+      return `<div class="conf"><p>Arquivar ${nome}? Ela sai da lista.${cfg.bloqueado === true ? ' O acesso já está bloqueado.' : ''}</p>` +
+        `<div class="par"><button type="button" class="btn" data-a="arq-so"${oc}>Arquivar</button><button type="button" class="btn ghost" data-a="fechar">Cancelar</button></div></div>`;
     }
-
-    document.getElementById(ids.venc).textContent = venc || 'Não definido';
-    document.getElementById(ids.dias).textContent = dias !== null ? (dias < 0 ? `Vencido há ${Math.abs(dias)}d` : `${dias} dias`) : '—';
-    document.getElementById(ids.bloq).textContent = bloq ? '🔒 Sim' : '✅ Não';
-    document.getElementById(ids.bloquear).style.display = bloq ? 'none'  : 'block';
-    document.getElementById(ids.liberar).style.display  = bloq ? 'block' : 'none';
+    return `<div class="conf"><p>Arquivar ${nome}. Bloquear o acesso também?</p>` +
+      `<div class="tres"><button type="button" class="btn bad" data-a="arq-bloq"${oc}>Arquivar e bloquear</button><button type="button" class="btn ghost" data-a="arq-so"${oc}>Só arquivar</button><button type="button" class="btn ghost" data-a="fechar">Cancelar</button></div></div>`;
+  }
+  // sem ação escolhida
+  if (c.erro) {
+    return `<p class="erro-txt">Não consegui ler esta loja (${esc(c.erro)}). Dá para arquivar mesmo assim.</p><div class="outras"><button type="button" data-a="m-arquivar">Arquivar</button></div>`;
+  }
+  return `<button type="button" class="btn" data-a="m-renovar">Renovar +30 dias</button><div class="outras"><button type="button" data-a="m-data">Definir data</button>` +
+    (cfg.bloqueado === true ? `<button type="button" class="ok" data-a="liberar"${oc}>Liberar acesso</button>` : `<button type="button" class="bad" data-a="m-cortar">Cortar acesso</button>`) +
+    `<button type="button" data-a="m-arquivar">Arquivar</button></div>`;
 }
 
-function mostrarPainel() {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('adminPanel').style.display  = 'flex';
-    carregarStatus(licM, { badge:'mBadge', venc:'mVenc', dias:'mDias', bloq:'mBloq', data:'mDataCustom', bloquear:'mBtnBloquear', liberar:'mBtnLiberar' });
-    carregarStatus(licA, { badge:'aBadge', venc:'aVenc', dias:'aDias', bloq:'aBloq', data:'aDataCustom', bloquear:'aBtnBloquear', liberar:'aBtnLiberar' });
+function linhaHtml(c) {
+  const e = estadoDe(c), open = aberta === c.id;
+  let h = `<div class="linha" data-id="${c.id}"><button type="button" class="row" data-a="abrir" aria-expanded="${open}">` +
+    `<span class="nome">${esc(c.nome)}<small>${esc(subTxt(c))}</small></span>` +
+    `<span class="dias ${e.k}${e.txt ? ' txt' : ''}"><b>${esc(e.num)}</b>${e.un ? `<span>${e.un}</span>` : ''}</span></button>`;
+  if (open && !c.carregando) h += `<div class="abre">${painelHtml(c, modo[c.id] || '')}</div>`;
+  return h + `</div>`;
 }
 
-function mostrarLogin() {
-    document.getElementById('adminPanel').style.display  = 'none';
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('senhaInput').value = '';
+function renderLista() {
+  const ativas = CLIENTES.filter(c => !arquivada(c));
+  const mostrar = ativas.filter(c => !termo || c.nome.toLowerCase().indexOf(termo) >= 0)
+    .sort((a, b) => estadoDe(a).ord - estadoDe(b).ord || (estadoDe(a).d ?? 1e9) - (estadoDe(b).d ?? 1e9) || a.nome.localeCompare(b.nome));
+  $('#busca').hidden = ativas.length <= 8;      // a busca só aparece quando a lista fica grande
+  $('#lista').innerHTML = mostrar.length ? mostrar.map(linhaHtml).join('') : '<p class="vazio">Nenhuma loja encontrada.</p>';
+
+  const pronto = ativas.filter(c => !c.carregando);
+  const venc = pronto.filter(c => !c.erro && ['warn', 'bad'].includes(estadoDe(c).k) && !(c.cfg && c.cfg.bloqueado)).length;
+  const bloq = pronto.filter(c => !c.erro && c.cfg && c.cfg.bloqueado === true).length;
+  const sem = pronto.filter(c => c.erro).length;
+  const partes = [`${ativas.length} loja${ativas.length === 1 ? '' : 's'}`];
+  if (venc) partes.push(`${venc} vencendo`);
+  if (bloq) partes.push(`${bloq} bloqueada${bloq > 1 ? 's' : ''}`);
+  if (sem) partes.push(`${sem} sem resposta`);
+  $('#sub').textContent = partes.join(' · ') + (arqErro ? ' · arquivadas indisponíveis' : '');
+
+  const arqs = CLIENTES.filter(arquivada).sort((a, b) => a.nome.localeCompare(b.nome));
+  $('#arqBtn').hidden = !arqs.length;
+  $('#arqBtn').textContent = `Arquivadas (${arqs.length})`;
+  if (!arqs.length) $('#arqLista').hidden = true;
+  $('#arqLista').innerHTML = arqs.map(c => `<div class="arq" data-id="${c.id}"><span>${esc(c.nome)}</span><button type="button" class="link" data-a="restaurar"${c.ocupado ? ' disabled' : ''}>Restaurar</button></div>`).join('');
+}
+const render = renderLista;
+
+// ── Leitura e gravação ─────────────────────────────────────────
+const comTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('sem resposta'), { code: 'timeout' })), ms))]);
+const codigo = err => (err && (err.code || err.message)) || 'erro';
+async function carregar(c) {
+  c.carregando = true; c.erro = '';
+  try {
+    const snap = await comTimeout(get(c.licRef), TIMEOUT_MS);
+    c.cfg = snap.exists() ? snap.val() : {};
+  } catch (err) { c.erro = codigo(err); }
+  c.carregando = false;
+}
+async function carregarArquivadas() {
+  arqErro = '';
+  try {
+    const snap = await comTimeout(get(registroRef()), TIMEOUT_MS);
+    arqSet.clear(); const v = snap.exists() ? snap.val() : {};
+    Object.keys(v).forEach(k => { if (v[k]) arqSet.add(k); });
+  } catch (err) { arqErro = codigo(err); }
+}
+async function gravar(c, dados, okMsg) {
+  c.ocupado = true; render();
+  try {
+    await comTimeout(update(c.licRef, dados), TIMEOUT_MS);
+    const snap = await comTimeout(get(c.licRef), TIMEOUT_MS);   // mostra o que realmente ficou gravado
+    c.cfg = snap.exists() ? snap.val() : {}; c.erro = '';
+    toast(okMsg); modo[c.id] = '';
+  } catch (err) { toast(`Não gravou (${codigo(err)}). Nada foi alterado.`); }   // mantém o painel aberto para tentar de novo
+  c.ocupado = false; render();
+}
+async function arquivar(c, bloquear) {
+  c.ocupado = true; render();
+  let aviso = '';
+  if (bloquear) {
+    try { await comTimeout(update(c.licRef, { bloqueado: true }), TIMEOUT_MS); c.cfg = Object.assign({}, c.cfg, { bloqueado: true }); }
+    catch (err) { aviso = ` Não consegui bloquear o acesso (${codigo(err)}).`; }
+  }
+  try {
+    await comTimeout(update(registroRef(), { [c.hid]: true }), TIMEOUT_MS);
+    arqSet.add(c.hid); aberta = ''; modo[c.id] = '';
+    toast(`${c.nome} arquivada.` + aviso);
+  } catch (err) { toast(`Não consegui arquivar (${codigo(err)}). Nada foi alterado.`); }
+  c.ocupado = false; render();
+}
+async function restaurar(c) {
+  c.ocupado = true; render();
+  try {
+    await comTimeout(update(registroRef(), { [c.hid]: null }), TIMEOUT_MS);
+    arqSet.delete(c.hid);
+    toast(c.cfg && c.cfg.bloqueado ? `${c.nome} restaurada (o acesso continua bloqueado)` : `${c.nome} restaurada`);
+  } catch (err) { toast(`Não consegui restaurar (${codigo(err)}).`); }
+  c.ocupado = false; render();
 }
 
-function login() {
-    if (document.getElementById('senhaInput').value === SENHA) {
-        mostrarPainel();
-    } else {
-        document.getElementById('errMsg').textContent = 'Senha incorreta.';
-        setTimeout(() => document.getElementById('errMsg').textContent = '', 2000);
-    }
+document.addEventListener('click', ev => {
+  if (ev.target.id === 'arqBtn') { $('#arqLista').hidden = !$('#arqLista').hidden; return; }
+  const b = ev.target.closest('[data-a]'); if (!b) return;
+  const host = b.closest('[data-id]'); if (!host) return;
+  const c = getCliente(host.dataset.id), a = b.dataset.a, cfg = c.cfg || {};
+  if (c.ocupado) return;
+  if (a === 'abrir') { aberta = aberta === c.id ? '' : c.id; modo[c.id] = ''; render(); }
+  else if (a.startsWith('m-')) { aberta = c.id; modo[c.id] = a.slice(2); render(); }
+  else if (a === 'fechar') { modo[c.id] = ''; render(); }
+  else if (a === 'renovar-ok') { const p = planoRenovar(cfg); gravar(c, { bloqueado: false, vencimento: p.para }, `${c.nome} renovada até ${dmy(p.para)}`); }
+  else if (a === 'liberar') gravar(c, { bloqueado: false }, `${c.nome} liberada`);
+  else if (a === 'cortar-ok') gravar(c, { bloqueado: true }, `Acesso de ${c.nome} cortado`);
+  else if (a === 'data-ok') {
+    const v = document.getElementById('dt-' + c.id).value;
+    if (!parseISO(v)) { toast('Escolha uma data válida.'); return; }
+    gravar(c, { vencimento: v }, `Vencimento de ${c.nome}: ${dmy(v)}`);
+  }
+  else if (a === 'arq-bloq') arquivar(c, true);
+  else if (a === 'arq-so') arquivar(c, false);
+  else if (a === 'restaurar') restaurar(c);
+});
+$('#busca').addEventListener('input', e => { termo = e.target.value.trim().toLowerCase(); renderLista(); });
+async function atualizarTudo() {
+  CLIENTES.forEach(c => { c.carregando = true; }); render();
+  await Promise.all([carregarArquivadas(), ...CLIENTES.map(carregar)]);
+  render();
 }
+$('#btnAtualizar').addEventListener('click', atualizarTudo);
 
-// ── Marcus ────────────────────────────────────────────────
-const mIds = { badge:'mBadge', venc:'mVenc', dias:'mDias', bloq:'mBloq', data:'mDataCustom', bloquear:'mBtnBloquear', liberar:'mBtnLiberar' };
-document.getElementById('mBtnBloquear').addEventListener('click', async () => { await update(licM, { bloqueado: true });  toast('🔒 Marcus bloqueado!'); carregarStatus(licM, mIds); });
-document.getElementById('mBtnLiberar').addEventListener('click',  async () => { await update(licM, { bloqueado: false }); toast('✅ Marcus liberado!');  carregarStatus(licM, mIds); });
-document.getElementById('mBtnRenovar').addEventListener('click',  async () => {
-    const d = new Date(); d.setDate(d.getDate()+30);
-    const nova = d.toISOString().split('T')[0];
-    await update(licM, { bloqueado: false, vencimento: nova });
-    toast('🔄 Marcus renovado até ' + nova); carregarStatus(licM, mIds);
+// ── PIN ────────────────────────────────────────────────────────
+async function sha256(txt) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('vortex:' + txt));
+  return [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+async function prepararIds() { for (const c of CLIENTES) c.hid = (await sha256('loja:' + c.id)).slice(0, 20); }
+let falhas = 0, travadoAte = 0, iniciado = false;
+async function entrar() {
+  $('#pin').hidden = true; $('#app').hidden = false;
+  try { sessionStorage.setItem('vx_ok', PIN_HASH); } catch (e) {}
+  if (!iniciado) { iniciado = true; await prepararIds(); atualizarTudo(); }
+}
+$('#btnSair').addEventListener('click', () => { try { sessionStorage.removeItem('vx_ok'); } catch (e) {} location.reload(); });
+$('#pinForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const msg = $('#pinMsg'), inp = $('#pinInput');
+  if (Date.now() < travadoAte) { msg.textContent = `Aguarde ${Math.ceil((travadoAte - Date.now()) / 1000)} s.`; return; }
+  if (!(window.crypto && crypto.subtle)) { msg.textContent = 'Abra esta página por https para usar o PIN.'; return; }
+  const ok = (await sha256(inp.value.trim())) === PIN_HASH;
+  inp.value = '';
+  if (ok) { falhas = 0; msg.textContent = ''; entrar(); return; }
+  falhas++; msg.textContent = 'PIN incorreto.';
+  if (falhas >= 5) { travadoAte = Date.now() + 30000; falhas = 0; msg.textContent = 'Muitas tentativas. Aguarde 30 s.'; }
 });
-document.getElementById('mBtnSalvar').addEventListener('click', async () => {
-    const val = document.getElementById('mDataCustom').value;
-    if (!val) { toast('⚠️ Escolha uma data.'); return; }
-    await update(licM, { vencimento: val }); toast('📅 Marcus: ' + val); carregarStatus(licM, mIds);
-});
-
-// ── America Board ─────────────────────────────────────────
-const aIds = { badge:'aBadge', venc:'aVenc', dias:'aDias', bloq:'aBloq', data:'aDataCustom', bloquear:'aBtnBloquear', liberar:'aBtnLiberar' };
-document.getElementById('aBtnBloquear').addEventListener('click', async () => { await update(licA, { bloqueado: true });  toast('🔒 America Board bloqueado!'); carregarStatus(licA, aIds); });
-document.getElementById('aBtnLiberar').addEventListener('click',  async () => { await update(licA, { bloqueado: false }); toast('✅ America Board liberado!');  carregarStatus(licA, aIds); });
-document.getElementById('aBtnRenovar').addEventListener('click',  async () => {
-    const d = new Date(); d.setDate(d.getDate()+30);
-    const nova = d.toISOString().split('T')[0];
-    await update(licA, { bloqueado: false, vencimento: nova });
-    toast('🔄 America Board renovado até ' + nova); carregarStatus(licA, aIds);
-});
-document.getElementById('aBtnSalvar').addEventListener('click', async () => {
-    const val = document.getElementById('aDataCustom').value;
-    if (!val) { toast('⚠️ Escolha uma data.'); return; }
-    await update(licA, { vencimento: val }); toast('📅 America Board: ' + val); carregarStatus(licA, aIds);
-});
-
-// ── Login / Logout ────────────────────────────────────────
-document.getElementById('btnEntrar').addEventListener('click', login);
-document.getElementById('senhaInput').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
-document.getElementById('btnSair').addEventListener('click', mostrarLogin);
+let guardado = ''; try { guardado = sessionStorage.getItem('vx_ok') || ''; } catch (e) {}
+if (guardado === PIN_HASH) entrar(); else $('#pinInput').focus();
 </script>
 </body>
 </html>
